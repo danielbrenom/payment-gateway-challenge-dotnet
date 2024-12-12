@@ -1,26 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
+using PaymentGateway.Api.Interfaces;
+using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Models.Responses;
-using PaymentGateway.Api.Services;
 
 namespace PaymentGateway.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class PaymentsController : Controller
+public class PaymentsController(IPaymentService paymentService) : Controller
 {
-    private readonly PaymentsRepository _paymentsRepository;
-
-    public PaymentsController(PaymentsRepository paymentsRepository)
+    [HttpPost]
+    [ProducesResponseType<PostPaymentResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PostPaymentResponse>> ProcessPaymentsAsync([FromBody] PostPaymentRequest request)
     {
-        _paymentsRepository = paymentsRepository;
+        var payment = await paymentService.SendPaymentRequestAsync(request);
+        return new OkObjectResult(payment);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<PostPaymentResponse?>> GetPaymentAsync(Guid id)
     {
-        var payment = _paymentsRepository.Get(id);
-
-        return new OkObjectResult(payment);
+        var payment = await paymentService.GetPaymentDataAsync(id);
+        return payment is not null ? new OkObjectResult(payment) : new NotFoundResult();
     }
 }
